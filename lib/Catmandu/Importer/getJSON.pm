@@ -28,7 +28,7 @@ has client  => (
     }
 );
 
-has json => (is => 'ro', default => sub { JSON->new->utf8(0) } );
+has json => (is => 'ro', default => sub { JSON->new->utf8(1) } );
 
 sub _trigger_url {
     my ($self, $url) = @_;
