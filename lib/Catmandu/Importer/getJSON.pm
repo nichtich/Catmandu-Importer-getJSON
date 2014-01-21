@@ -126,8 +126,12 @@ A line that starts with "/" is appended to the configured url parameter.
 
 =item variables
 
-A JSON object with variables to be used with an URL Template or as HTTP query
-parameters.
+A JSON object with variables to be used with an URL template or as HTTP query
+parameters. For instance the input line C<< {"name":"Karl Marx"} >> with URL
+C<http://api.lobid.org/person> or the input line 
+C<< {"entity":"person","name":"Karl Marx"} >> with URL template
+C<http://api.lobid.org/{entity}{?id}{?name}{?q}> are both expanded to
+L<http://api.lobid.org/person?name=Karl+Marx>.
 
 =back
 
@@ -140,7 +144,7 @@ If the HTTP response is a JSON array, its elements are returned as items.
 =item url
 
 An URL to load from. Can be an L<URI> or an URI templates (L<URI::Template>) as
-defined by L<http://tools.ietf.org/html/rfc6570|RFC 6570>. If no URL is
+defined by L<RFC 6570|http://tools.ietf.org/html/rfc6570>. If no URL is
 configured, the URL must be provided from input.
 
 =item timeout
