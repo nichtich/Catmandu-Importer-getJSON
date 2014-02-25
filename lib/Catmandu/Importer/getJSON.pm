@@ -12,7 +12,7 @@ use URI::Template;
 with 'Catmandu::Importer';
 
 has url     => ( is => 'rw', trigger => 1 );
-
+has from    => ( is => 'ro' );
 has timeout => ( is => 'ro', default => sub { 10 } );
 has agent   => ( is => 'ro' );
 has proxy   => ( is => 'ro' );
@@ -48,6 +48,16 @@ sub _trigger_url {
 
 sub generator {
     my ($self) = @_;
+
+    if ($self->from) {
+        return sub {
+            state $done = 0;
+            return if $done;
+            $done = 1;
+            return $self->_query_url($self->from);
+        }
+    }
+
     sub {
         state $fh   = $self->fh;
         state $data;
@@ -57,23 +67,15 @@ sub generator {
         }
 
         my $line = <$fh> // return;
-        my $url = $self->construct_url($line) // return;
+        my $url = $self->_construct_url($line) // return;
 
-        my $response = $self->client->get($url, $self->headers);
-        unless ($response->is_success) {
-            warn "request failed: $url\n";
-            return;
-        }
-
-        my $content = $response->decoded_content;
-
-        $data = $self->json->decode($content);
+        $data = $self->_query_url($url);
 
         return (ref $data // '') eq 'ARRAY' ? shift @$data : $data;
     }
 }
 
-sub construct_url {
+sub _construct_url {
     my ($self, $line) = @_;
     chomp $line;
 
@@ -101,28 +103,66 @@ sub construct_url {
         }
     }
    
-    warn "failed to construct URL from: '$line'\n" unless $url;
+    warn "failed to _construct URL from: '$line'\n" unless $url;
 
     return $url;
 }
 
+sub _query_url {
+    my ($self, $url) = @_;
+
+    my $response = $self->client->get($url, $self->headers);
+    unless ($response->is_success) {
+        warn "request failed: $url\n";
+        return;
+    }
+
+    my $content = $response->decoded_content;
+
+    $self->json->decode($content);
+}
+
 1;
+
+=head1 SYNOPSIS
+
+The following three examples are equivalent:
+
+    Catmandu::Importer::getJSON->new(
+        file => \"http://example.org/alice.json\nhttp://example.org/bob.json"
+    )->each(sub { my ($record) = @_; ... );
+
+    Catmandu::Importer::getJSON->new(
+        url  => "http://example.org",
+        file => \"/alice.json\n/bob.json"
+    )->each(sub { my ($record) = @_; ... );
+    
+    Catmandu::Importer::getJSON->new(
+        url  => "http://example.org/{name}.json",
+        file => \"{\"name\":\"alice\"}\n{\"name\":\"bob\"}"
+    )->each(sub { my ($record) = @_; ... );
+
+For more convenience the L<catmandu> command line client can be used:
+
+    echo http://example.org/alice.json | catmandu convert getJSON to YAML
+    catmandu convert getJSON --from http://example.org/alice.json to YAML
 
 =head1 DESCRIPTION
 
 This L<Catmandu::Importer> performs a HTTP GET request to load JSON-encoded
-data from a server. Each input line corresponds to a HTTP request. The
+data from a server. The importer expects a line-separated input. Each line
+corresponds to a HTTP request that is mapped to a JSON-record on success. The
 following input formats are accepted:
 
 =over
 
 =item plain URL
 
-A line that starts with "http://" or "https://" is used as URL as given.
+A line that starts with "C<http://>" or "C<https://>" is used as plain URL.
 
 =item URL path
 
-A line that starts with "/" is appended to the configured url parameter.
+A line that starts with "C</>" is appended to the configured B<url> parameter.
 
 =item variables
 
@@ -135,7 +175,9 @@ L<http://api.lobid.org/person?name=Karl+Marx>.
 
 =back
 
-If the HTTP response is a JSON array, its elements are returned as items.
+If the JSON data returned in a HTTP response is a JSON array, its elements are
+imported as multiple items. If a JSON object is returned, it is imported as one
+item.
 
 =head1 CONFIGURATION
 
@@ -143,27 +185,24 @@ If the HTTP response is a JSON array, its elements are returned as items.
 
 =item url
 
-An URL to load from. Can be an L<URI> or an URI templates (L<URI::Template>) as
-defined by L<RFC 6570|http://tools.ietf.org/html/rfc6570>. If no URL is
-configured, the URL must be provided from input.
+An L<URI> or an URI templates (L<URI::Template>) as defined by 
+L<RFC 6570|http://tools.ietf.org/html/rfc6570> to load JSON from. If no B<url>
+is configured, plain URLs must be provided as input or option C<from> must be
+used instead.
 
-=item timeout
+=item from
 
-=item agent
+A plain URL to load JSON without reading any input lines.
 
-=item proxy
+=item timeout / agent / proxy / headers
 
 Optional HTTP client settings.
 
 =item client
 
-Instance of L<Furl> to do HTTP requests with. Future versions of this module
-may also support other HTTP fetching modules, such as L<HTTP::Async> for
-asynchronous requests.
+Instance of a L<Furl> HTTP client to perform requests with.
 
-=item file
-
-=item fh
+=item file / fh
 
 Input to read lines from (see L<Catmandu::Importer>). Defaults to STDIN.
 
@@ -173,8 +212,15 @@ An optional fix to be applied on every item (see L<Catmandu::Fix>).
 
 =back
 
-=head1 TODO
+=head1 LIMITATIONS
 
-Error handling!
+Error handling is very limited.
+
+Future versions of this module may also support asynchronous HTTP fetching
+modules such as L<HTTP::Async>, for retrieving multiple URLs at the same time..
+
+=head1 SEE ALSO
+
+L<Catmandu>
 
 =encoding utf8

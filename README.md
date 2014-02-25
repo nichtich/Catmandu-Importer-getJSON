@@ -7,5 +7,5 @@ Feedback and contributions are very welcome!
 # Status
 
 [![Build Status](https://travis-ci.org/nichtich/Catmandu-Importer-getJSON.png)](https://travis-ci.org/nichtich/Catmandu-Importer-getJSON)
-[![Coverage Status](https://coveralls.io/repos/nichtich/Catmandu-Importer-getJSON/badge.png?branch=devel)](https://coveralls.io/r/nichtich/Catmandu-Importer-getJSON?branch=devel)
+[![Coverage Status](https://coveralls.io/repos/nichtich/Catmandu-Importer-getJSON/badge.png?branch=devel)](https://coveralls.io/r/nichtich/Catmandu-Importer-getJSON?branch=master)
 [![Kwalitee Score](http://cpants.cpanauthors.org/dist/Catmandu-Importer-getJSON.png)](http://cpants.cpanauthors.org/dist/Catmandu-Importer-getJSON)

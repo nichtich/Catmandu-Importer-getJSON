@@ -41,6 +41,11 @@ test_importer undef,
     '[{"n":1},{"n":2}]' => [{"n"=>1},{"n"=>2}],
     'JSON array response';
 
+is_deeply(Catmandu::Importer::getJSON->new(
+    client => MockFurl::new( content => '{"hello":"World"}' ),
+    from   =>  'http://example.org',
+)->to_array, [{hello=>"World"}], '--from');
+
 done_testing;
 
 package MockFurl;
