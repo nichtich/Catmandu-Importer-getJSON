@@ -1,15 +1,49 @@
-package Catmandu::Importer::getJSON;
-#ABSTRACT: Load JSON-encoded data from a server using a GET HTTP request
+package Catmandu::Importer::HTTP;
+#ABSTRACT: Load record(s) from a server using a GET HTTP request
 #VERSION
 
 use Catmandu::Sane;
 use Moo;
+use Furl;
 use Scalar::Util qw(blessed);
 use URI::Template;
 
-with 'Catmandu::Importer::HTTP';
+with 'Catmandu::Importer';
 
-has '+headers' => ( is => 'ro', default => sub { [ 'Accept' => 'application/json' ] } );
+has url     => ( is => 'rw', trigger => 1 );
+has from    => ( is => 'ro' );
+has timeout => ( is => 'ro', default => sub { 10 } );
+has agent   => ( is => 'ro' );
+has proxy   => ( is => 'ro' );
+has headers => ( is => 'ro', default => sub { [ ] );
+has client  => (
+    is => 'ro',
+    lazy => 1,
+    builder => sub { 
+        Furl->new( 
+            map { $_ => $_[0]->{$_} } grep { defined $_[0]->{$_} }
+            qw(timeout agent proxy),
+        ) 
+    }
+);
+
+has json => (is => 'ro', default => sub { JSON->new->utf8(1) } );
+
+sub _trigger_url {
+    my ($self, $url) = @_;
+
+    if (!blessed $url) {
+        $url = URI::Template->new($url) unless blessed $url;
+    }
+
+    if ($url->isa('URI::Template')) {
+        unless ($url->variables) {
+            $url = URI->new("$url");
+        }
+    }
+
+    $self->{url} = $url;
+}
 
 sub generator {
     my ($self) = @_;
@@ -40,14 +74,49 @@ sub generator {
     }
 }
 
-sub _query_json {
+sub _construct_url {
+    my ($self, $line) = @_;
+    chomp $line;
+
+    my $url;
+
+    # plain URL
+    if ( $line =~ /^https?:\// ) {
+        $url = URI->new($line);
+    # URL path (and optional query)
+    } elsif ( $line =~ /^\// ) {
+        $url = "".$self->url;
+        $url =~ s{/$}{}; 
+        $line =~ s{\s+$}{};
+        $url = URI->new($url . $line);
+    # Template or query variables
+    } else { 
+        my $vars = $self->json->decode($line); 
+        $url = $self->url;
+        if ($url->isa('URI::Template')) {
+            $url = $url->process($vars);
+        } else {
+            $url = $url->clone;
+            $url->query_form( $vars );
+
+        }
+    }
+   
+    warn "failed to _construct URL from: '$line'\n" unless $url;
+
+    return $url;
+}
+
+sub get {
     my ($self, $url) = @_;
 
-    my $content = $self->query($url);
-
-    if (defined $content) {
-        return $self->json->decode($content->decoded_content);
+    my $response = $self->client->get($url, $self->headers);
+    unless ($response->is_success) {
+        warn "request failed: $url\n";
+        return;
     }
+
+    return $response;
 }
 
 1;
@@ -139,6 +208,12 @@ Input to read lines from (see L<Catmandu::Importer>). Defaults to STDIN.
 An optional fix to be applied on every item (see L<Catmandu::Fix>).
 
 =back
+
+=head1 METHODS
+
+=head2 get($url)
+
+...
 
 =head1 LIMITATIONS
 
