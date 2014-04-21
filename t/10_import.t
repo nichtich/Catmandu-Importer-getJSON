@@ -46,6 +46,11 @@ is_deeply(Catmandu::Importer::getJSON->new(
     from   =>  'http://example.org',
 )->to_array, [{hello=>"World"}], '--from');
 
+is_deeply(Catmandu::Importer::getJSON->new( 
+    dry => 1, url => 'http://example.{tdl}/',
+    file => \'{"tdl":"org"}'
+)->to_array, [{url=>"http://example.org/"}],'--dry');
+
 done_testing;
 
 package MockFurl;

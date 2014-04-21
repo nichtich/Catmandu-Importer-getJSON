@@ -16,6 +16,7 @@ has from    => ( is => 'ro' );
 has timeout => ( is => 'ro', default => sub { 10 } );
 has agent   => ( is => 'ro' );
 has proxy   => ( is => 'ro' );
+has dry     => ( is => 'ro' );
 has headers => ( is => 'ro', default => sub { [ 'Accept' => 'application/json' ] } );
 has client  => (
     is => 'ro',
@@ -111,6 +112,10 @@ sub _construct_url {
 sub _query_url {
     my ($self, $url) = @_;
 
+    if ( $self->dry ) {
+        return { url => $url };
+    }
+
     my $response = $self->client->get($url, $self->headers);
     unless ($response->is_success) {
         warn "request failed: $url\n";
@@ -201,6 +206,10 @@ Optional HTTP client settings.
 =item client
 
 Instance of a L<Furl> HTTP client to perform requests with.
+
+=item dry
+
+Don't do any HTTP requests but return URLs that data would be queried from. 
 
 =item file / fh
 
