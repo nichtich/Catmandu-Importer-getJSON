@@ -36,11 +36,6 @@ test_importer
     '{}' => { },
     'URI::Template';
 
-test_importer undef, 
-    [ ["http://example.info" => "http://example.info" ] ],
-    '[{"n":1},{"n":2}]' => [{"n"=>1},{"n"=>2}],
-    'JSON array response';
-
 is_deeply(Catmandu::Importer::getJSON->new(
     client => MockFurl::new( content => '{"hello":"World"}' ),
     from   =>  'http://example.org',
@@ -50,6 +45,18 @@ is_deeply(Catmandu::Importer::getJSON->new(
     dry => 1, url => 'http://example.{tdl}/',
     file => \'{"tdl":"org"}'
 )->to_array, [{url=>"http://example.org/"}],'--dry');
+
+test_importer undef, 
+    [ ["http://example.info" => "http://example.info" ] ],
+    '[{"n":1},{"n":2}]' => [{"n"=>1},{"n"=>2}],
+    'JSON array response';
+
+my $importer = Catmandu::Importer::getJSON->new(
+    client => MockFurl::new( content => '[{"n":1},{"n":2}]' ),
+    from   => 'http://example.org',
+);
+is_deeply $importer->first, {n => 1}, 'array response 1/2';
+is_deeply $importer->rest->first, { n => 2}, 'array response 2/2';
 
 done_testing;
 
