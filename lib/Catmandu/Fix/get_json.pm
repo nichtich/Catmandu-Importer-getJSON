@@ -1,4 +1,5 @@
 package Catmandu::Fix::get_json;
+#ABSTRACT: get JSON data from an URL as fix function
 
 use Catmandu::Sane;
 use Moo;
@@ -30,7 +31,7 @@ sub emit {
 
 1;
 
-=head1
+=head1 SYNOPSIS
 
 	# returns the hash
 	get_json("http://example.com/json")
