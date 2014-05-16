@@ -293,6 +293,6 @@ modules such as L<HTTP::Async>, for retrieving multiple URLs at the same time..
 
 =head1 SEE ALSO
 
-L<Catmandu>
+L<Catmandu::Fix::get_json> provides this importer as fix function.
 
 =encoding utf8

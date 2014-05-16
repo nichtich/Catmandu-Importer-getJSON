@@ -15,7 +15,10 @@ has importer => (is => 'ro', lazy => 1, builder => 1);
 
 sub _build_importer {
 	my $self = shift;
-	Catmandu::Importer::getJSON->new(from => $self->url, dry => $self->dry);
+	Catmandu::Importer::getJSON->new(
+        from => $self->url,
+        dry  => $self->dry,
+    );
 }
 
 sub emit {
@@ -37,6 +40,17 @@ sub emit {
 	get_json("http://example.com/json")
 
 	# stores the in path.key
-	get_json("http://example.com/json", path.key)
+	get_json("http://example.com/json", path: path.key)
+
+=head1 DESCRIPTION
+
+This L<Catmandu::Fix> provides a method to fetch JSON data from an URL. The
+response is added as new item or to a field of the current item.
+
+By now the only additional option of L<Catmandu::Importer::getJSON> supported
+by this fix function is C<dry>. Future releases will also support setting the
+URL to a field value of the current item.
 
 =cut
+
+=encoding utf8
