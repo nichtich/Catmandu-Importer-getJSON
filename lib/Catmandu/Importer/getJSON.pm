@@ -18,6 +18,7 @@ has agent   => ( is => 'ro' );
 has proxy   => ( is => 'ro' );
 has dry     => ( is => 'ro' );
 has headers => ( is => 'ro', default => sub { [ 'Accept' => 'application/json' ] } );
+has wait    => ( is => 'ro' );
 has client  => (
     is => 'ro',
     lazy => 1,
@@ -30,6 +31,8 @@ has client  => (
 );
 
 has json => (is => 'ro', default => sub { JSON->new->utf8(1) } );
+
+has time => (is => 'rw');
 
 sub _trigger_url {
     my ($self, $url) = @_;
@@ -127,12 +130,21 @@ sub _construct_url {
     return $url;
 }
 
+
 sub _query_url {
     my ($self, $url) = @_;
+
+    $self->log->debug($url);
 
     if ( $self->dry ) {
         return { url => "$url" };
     }
+
+    if ( $self->wait and $self->time ) {
+        my $elapsed = ($self->time // time) - time;
+        sleep( $self->wait - $elapsed );
+    }
+    $self->time(time);
 
     my $response = $self->client->get($url, $self->headers);
     unless ($response->is_success) {
@@ -241,7 +253,18 @@ Input to read lines from (see L<Catmandu::Importer>). Defaults to STDIN.
 
 An optional fix to be applied on every item (see L<Catmandu::Fix>).
 
+=item wait
+
+Number of seconds to wait between requests.
+
 =back
+
+=head1 METHODS
+
+=head2 time
+
+Returns the UNIX timestamp right before the last request. This can be used for
+instance to add timestamps or the measure how fast requests were responded.
 
 =head1 EXTENDING
 
@@ -256,6 +279,10 @@ object or an URL.
 =head2 response_hook
 
 Gets the queried response object and is expected to return an object.
+
+=head1 LOGGING
+
+URLs are emitted before each request on DEBUG log level.
 
 =head1 LIMITATIONS
 
