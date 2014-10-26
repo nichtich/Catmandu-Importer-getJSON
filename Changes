@@ -1,6 +1,8 @@
 Changelog for Catmandu-Importer-getJSON
 
 {{$NEXT}}
+
+0.41  2014-10-26 10:35:49 CET
  - migrated to Dist::Milla
  - include missing version (issue #9)
 
