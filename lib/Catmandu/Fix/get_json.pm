@@ -1,5 +1,6 @@
 package Catmandu::Fix::get_json;
-#ABSTRACT: get JSON data from an URL as fix function
+
+our $VERSION = '0.41';
 
 use Catmandu::Sane;
 use Moo;
@@ -33,6 +34,11 @@ sub emit {
 }
 
 1;
+__END__
+
+=head1 NAME
+
+Catmandu::Fix::get_json - get JSON data from an URL as fix function
 
 =head1 SYNOPSIS
 
@@ -52,5 +58,3 @@ by this fix function is C<dry>. Future releases will also support setting the
 URL to a field value of the current item.
 
 =cut
-
-=encoding utf8
