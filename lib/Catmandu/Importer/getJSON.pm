@@ -42,7 +42,7 @@ sub _trigger_url {
     }
 
     if ($url->isa('URI::Template')) {
-        unless ($url->variables) {
+        unless ( my @variables = $url->variables ) {
             $url = URI->new("$url");
         }
     }
