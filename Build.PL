@@ -3,5 +3,5 @@ use strict;
 use warnings;
 
 use v5.10.1;
-use Module::Build::Tiny 0.038;
+use Module::Build::Tiny 0.039;
 Build_PL();

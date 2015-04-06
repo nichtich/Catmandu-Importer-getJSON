@@ -26,7 +26,7 @@
    "prereqs" : {
       "configure" : {
          "requires" : {
-            "Module::Build::Tiny" : "0.038"
+            "Module::Build::Tiny" : "0.039"
          }
       },
       "develop" : {
@@ -39,7 +39,9 @@
          "requires" : {
             "Catmandu" : "0.9",
             "Furl" : "3.0",
+            "JSON" : "2.90",
             "Moo" : "1.0",
+            "Scalar::Util" : "1.41",
             "URI::Template" : "0.18",
             "perl" : "v5.10.1"
          }
@@ -57,9 +59,11 @@
          "web" : "https://github.com/nichtich/Catmandu-Importer-getJSON"
       }
    },
-   "version" : "0.41",
+   "version" : "0.42",
    "x_contributors" : [
+      "Jakob Voss <jakob@nichtich.de>",
       "Jakob Voss <voss@gbv.de>",
+      "bayashi <bayashi@cpan.org>",
       "vpeil <vitali.peil@uni-bielefeld.de>"
    ]
 }
