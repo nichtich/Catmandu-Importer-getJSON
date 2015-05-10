@@ -1,6 +1,6 @@
 package Catmandu::Fix::get_json;
 
-our $VERSION = '0.41';
+our $VERSION = '0.43';
 
 use Catmandu::Sane;
 use Moo;
@@ -9,16 +9,19 @@ use Catmandu::Importer::getJSON;
 
 with "Catmandu::Fix::Base";
 
-has url => (fix_arg => 1);
-has path => (fix_opt => 1, default => sub {""});
-has dry => (fix_opt => 1);
+has url   => (fix_arg => 1);
+has path  => (fix_opt => 1, default => sub {""});
+has dry   => (fix_opt => 1);
+has cache => (fix_opt => 1);
+
 has importer => (is => 'ro', lazy => 1, builder => 1);
 
 sub _build_importer {
 	my $self = shift;
 	Catmandu::Importer::getJSON->new(
-        from => $self->url,
-        dry  => $self->dry,
+        from  => $self->url,
+        dry   => $self->dry,
+        cache => $self->cache,
     );
 }
 
@@ -53,8 +56,10 @@ Catmandu::Fix::get_json - get JSON data from an URL as fix function
 This L<Catmandu::Fix> provides a method to fetch JSON data from an URL. The
 response is added as new item or to a field of the current item.
 
+=head1 OPTIONS
+
 By now the only additional option of L<Catmandu::Importer::getJSON> supported
-by this fix function is C<dry>. Future releases will also support setting the
-URL to a field value of the current item.
+by this fix function are C<dry> and C<cache>. Future releases will also
+support setting the URL to a field value of the current item.
 
 =cut

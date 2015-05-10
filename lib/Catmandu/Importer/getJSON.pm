@@ -1,6 +1,6 @@
 package Catmandu::Importer::getJSON;
 
-our $VERSION = '0.42';
+our $VERSION = '0.43';
 
 use Catmandu::Sane;
 use Moo;
@@ -17,8 +17,12 @@ has timeout => ( is => 'ro', default => sub { 10 } );
 has agent   => ( is => 'ro' );
 has proxy   => ( is => 'ro' );
 has dry     => ( is => 'ro' );
-has headers => ( is => 'ro', default => sub { [ 'Accept' => 'application/json' ] } );
+has headers => ( 
+    is => 'ro', 
+    default => sub { [ 'Accept' => 'application/json' ] } 
+);
 has wait    => ( is => 'ro' );
+has cache   => ( is => 'ro', trigger => 1 );
 has client  => (
     is => 'ro',
     lazy => 1,
@@ -29,10 +33,8 @@ has client  => (
         ) 
     }
 );
-
-has json => (is => 'ro', default => sub { JSON->new->utf8(1) } );
-
-has time => (is => 'rw');
+has json => ( is => 'ro', default => sub { JSON->new->utf8(1) } );
+has time => ( is => 'rw' );
 
 sub _trigger_url {
     my ($self, $url) = @_;
@@ -48,6 +50,56 @@ sub _trigger_url {
     }
 
     $self->{url} = $url;
+}
+
+{
+    package Importer::getJSON::MemoryCache;
+    sub new { bless {}, $_[0] }
+    sub get { $_[0]->{$_[1]} }
+    sub set { $_[0]->{$_[1]} = $_[2] }
+}
+{
+    package Importer::getJSON::FileCache;
+    use JSON;
+    use Digest::MD5 qw(md5_hex);
+    our $JSON = JSON->new->utf8->pretty;
+    sub new {
+        my ($class, $dir) = @_;
+        $dir =~ s{/$}{};
+        bless { dir => $dir }, $class 
+    }
+    sub file {
+        my ($self, $url) = @_;
+        $self->{dir}.'/'.md5_hex($url).'.json';
+    }
+    sub get {
+        my ($self, $url) = @_;
+        eval { 
+            $JSON->decode(do { 
+                local (@ARGV, $/) = $self->file($url);
+                <>;
+            }) 
+        }
+    }
+    sub set { 
+        my ($self, $url, $data) = @_;
+        open my $fh, ">", $self->file($url);
+        print $fh $JSON->encode($data);
+    }
+}
+
+sub _trigger_cache {
+    my ($self, $cache) = @_;
+ 
+    if (blessed $cache and $cache->can('get') and $cache->can('set')) {
+        # use cache object 
+    } elsif ($cache and -d $cache) {
+        $cache = Importer::getJSON::FileCache->new($cache);
+    } elsif ($cache) {
+        $cache = Importer::getJSON::MemoryCache->new;
+    }
+
+    $self->{cache} = $cache;
 }
 
 sub generator {
@@ -136,8 +188,17 @@ sub _query_url {
 
     $self->log->debug($url);
 
+    my $json = '';
+
     if ( $self->dry ) {
         return { url => "$url" };
+    }
+
+    if ( $self->cache ) {
+        $json = $self->cache->get($url);
+        if (defined $json) {
+            return ref $json ? $json : undef;
+        }   
     }
 
     if ( $self->wait and $self->time ) {
@@ -147,15 +208,24 @@ sub _query_url {
     $self->time(time);
 
     my $response = $self->client->get($url, $self->headers);
-    unless ($response->is_success) {
+    if ($response->is_success) {
+        my $content = $response->decoded_content;
+        my $data    = $self->json->decode($content);
+        $json       = $self->response_hook($data);
+     } else {
         warn "request failed: $url\n";
-        return;
+        if ($response->status =~ /^4/) {
+            $json = '';
+        } else {
+            return;
+        }
     }
 
-    my $content = $response->decoded_content;
-    my $data    = $self->json->decode($content);
+    if ( $self->cache ) {
+        $self->cache->set($url, $json);
+    }
 
-    $self->response_hook($data);
+    return ref $json ? $json : undef;
 }
 
 sub response_hook { $_[1] }
@@ -271,6 +341,18 @@ An optional fix to be applied on every item (see L<Catmandu::Fix>).
 =item wait
 
 Number of seconds to wait between requests.
+
+=item cache
+
+Cache JSON response of URLs to not request the same URL twice. HTTP error
+codes in the 4xx range (e.g. 404) are also cached but 5xx errors are not.
+
+The value of this option can be any objects that implements method C<get> and
+C<set> (e.g. C<CHI>), an existing directory for file caching, a true value to
+enable in-memory-caching, or a false value to disable caching (default).
+
+File caching uses file names based on MD5 of an URL so for instance
+C<http://example.org/> is cached as C<4389382917e51695b759543fdfd5f690.json>.
 
 =back
 

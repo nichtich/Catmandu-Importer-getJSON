@@ -1,6 +1,7 @@
 Changelog for Catmandu-Importer-getJSON
 
 {{$NEXT}}
+ - added caching
 
 0.42  2015-04-06 16:52:48 CEST
  - fix dependencies and URI::Template changes

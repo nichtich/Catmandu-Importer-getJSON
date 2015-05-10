@@ -1,5 +1,7 @@
 use strict;
 use Test::More;
+use lib 't';
+use MockFurl;
 use Catmandu::Importer::getJSON;
 
 sub test_importer(@) { ##no critic
@@ -59,12 +61,3 @@ is_deeply $importer->first, {n => 1}, 'array response 1/2';
 is_deeply $importer->rest->first, { n => 2}, 'array response 2/2';
 
 done_testing;
-
-package MockFurl;
-sub new { bless { @_ }, 'MockFurl' }
-sub decoded_content { $_[0]->{content} }
-sub urls { $_[0]->{urls} // [] } 
-sub get { push @{$_[0]->{urls}}, $_[1]; $_[0] }
-sub is_success { 1 }
-
-1;
