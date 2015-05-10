@@ -1,6 +1,8 @@
 Changelog for Catmandu-Importer-getJSON
 
 {{$NEXT}}
+
+0.43  2015-05-10 22:12:01 CEST
  - added caching
 
 0.42  2015-04-06 16:52:48 CEST

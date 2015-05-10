@@ -97,6 +97,18 @@ item.
 
     Number of seconds to wait between requests.
 
+- cache
+
+    Cache JSON response of URLs to not request the same URL twice. HTTP error
+    codes in the 4xx range (e.g. 404) are also cached but 5xx errors are not.
+
+    The value of this option can be any objects that implements method `get` and
+    `set` (e.g. `CHI`), an existing directory for file caching, a true value to
+    enable in-memory-caching, or a false value to disable caching (default).
+
+    File caching uses file names based on MD5 of an URL so for instance
+    `http://example.org/` is cached as `4389382917e51695b759543fdfd5f690.json`.
+
 # METHODS
 
 ## time
