@@ -1,6 +1,7 @@
 package Catmandu::Importer::getJSON;
 
 our $VERSION = '0.43';
+our $CACHE;
 
 use Catmandu::Sane;
 use Moo;
@@ -54,15 +55,20 @@ sub _trigger_url {
 
 {
     package Importer::getJSON::MemoryCache;
+    use JSON;
+    our $JSON = JSON->new->utf8;
     sub new { bless {}, $_[0] }
-    sub get { $_[0]->{$_[1]} }
-    sub set { $_[0]->{$_[1]} = $_[2] }
+    sub get { eval { $JSON->decode($_[0]->{$_[1]}) } }
+    sub set { $_[0]->{$_[1]} = ref $_[2] ? $JSON->encode($_[2]) : '' }
 }
+$CACHE = Importer::getJSON::MemoryCache->new;
+
 {
     package Importer::getJSON::FileCache;
     use JSON;
+    use Catmandu::Util qw(read_json);
     use Digest::MD5 qw(md5_hex);
-    our $JSON = JSON->new->utf8->pretty;
+    our $JSON = JSON->new->utf8;
     sub new {
         my ($class, $dir) = @_;
         $dir =~ s{/$}{};
@@ -72,19 +78,11 @@ sub _trigger_url {
         my ($self, $url) = @_;
         $self->{dir}.'/'.md5_hex($url).'.json';
     }
-    sub get {
-        my ($self, $url) = @_;
-        eval { 
-            $JSON->decode(do { 
-                local (@ARGV, $/) = $self->file($url);
-                <>;
-            }) 
-        }
-    }
+    sub get { eval { read_json($_[0]->file($_[1])) } }
     sub set { 
         my ($self, $url, $data) = @_;
         open my $fh, ">", $self->file($url);
-        print $fh $JSON->encode($data);
+        print $fh (ref $data ? $JSON->encode($data) : '');
     }
 }
 
@@ -96,7 +94,7 @@ sub _trigger_cache {
     } elsif ($cache and -d $cache) {
         $cache = Importer::getJSON::FileCache->new($cache);
     } elsif ($cache) {
-        $cache = Importer::getJSON::MemoryCache->new;
+        $cache = $CACHE;
     }
 
     $self->{cache} = $cache;
@@ -349,7 +347,7 @@ codes in the 4xx range (e.g. 404) are also cached but 5xx errors are not.
 
 The value of this option can be any objects that implements method C<get> and
 C<set> (e.g. C<CHI>), an existing directory for file caching, a true value to
-enable in-memory-caching, or a false value to disable caching (default).
+enable global in-memory-caching, or a false value to disable caching (default).
 
 File caching uses file names based on MD5 of an URL so for instance
 C<http://example.org/> is cached as C<4389382917e51695b759543fdfd5f690.json>.
