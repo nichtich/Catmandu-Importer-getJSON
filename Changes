@@ -1,6 +1,7 @@
 Changelog for Catmandu-Importer-getJSON
 
 {{$NEXT}}
+ - proceed on URL errors when reading URLs from stream
  - made in-memory cache global
 
 0.43  2015-05-10 22:12:01 CEST
@@ -14,23 +15,23 @@ Changelog for Catmandu-Importer-getJSON
  - include missing version (issue #9)
 
 0.40 2014-05-16T09:08:44
- - document Catmandu::Fix::get_json [Jakob Voss]
- - enable logging and option 'wait' [Jakob Voss]
- - bump version [Jakob Voss]
+ - document Catmandu::Fix::get_json
+ - enable logging and option 'wait'
+ - bump version
  - cpanfile [vpeil]
  - get_json fix added [vpeil]
 
 0.3 2014-04-23T19:28:43
- - fix option 'from' [Jakob Voss]
+ - fix option 'from'
 
 0.2 2014-04-22T18:08:25
- - version number [Jakob Voss]
- - introduced request and response hooks [Jakob Voss]
- - new option --dry [Jakob Voss]
- - option --from closes issue #1 [Jakob Voss]
- - minor documentation changes [Jakob Voss]
+ - version number
+ - introduced request and response hooks
+ - new option --dry
+ - option --from closes issue #1
+ - minor documentation changes
 
 0.1 2014-01-21T11:08:38
- - use UTF-8 [Jakob Voss]
- - initial version [Jakob Voss]
+ - use UTF-8
+ - initial version
 

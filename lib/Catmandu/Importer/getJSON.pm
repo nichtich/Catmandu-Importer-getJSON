@@ -36,6 +36,7 @@ has client  => (
 );
 has json => ( is => 'ro', default => sub { JSON->new->utf8(1) } );
 has time => ( is => 'rw' );
+has warn => ( is => 'ro', default => sub { 1 } );
 
 sub _trigger_url {
     my ($self, $url) = @_;
@@ -121,8 +122,14 @@ sub generator {
             return shift @$data;
         }
 
-        my $line = <$fh> // return;
-        my $url = $self->_construct_url($line) // return;
+        my $url;
+        until ( $url ) {
+            my $line = <$fh> // return;
+            chomp $line;
+            $line =~ s/^\s+|\s+$//g;
+            next if $line eq ''; # ignore empty lines
+            $url = $self->_construct_url($line);
+        }
 
         $data = $self->_query_url($url);
 
@@ -156,10 +163,7 @@ sub request_hook {
 sub _construct_url {
     my ($self, $line) = @_;
 
-    chomp $line;
-    $line =~ s/^\s+|\s+$//g;
-
-    my $request = $self->request_hook($line);
+    my $request = eval { $self->request_hook($line) };
     my $url;
 
     # Template or query variables
@@ -175,7 +179,7 @@ sub _construct_url {
         $url = $request;
     }
   
-    warn "failed to _construct URL from: '$line'\n" unless $url;
+    warn "failed to construct URL: $line\n" if !$url and $self->warn;
 
     return $url;
 }
@@ -369,7 +373,7 @@ respectively. See L<Catmandu::Importer::Wikidata> for an example.
 =head2 request_hook
 
 Gets a whitespace-trimmed input line and is expected to return an unblessed
-object or an URL.
+object, an URL, or undef. Errors are catched and treated equal to undef. 
 
 =head2 response_hook
 

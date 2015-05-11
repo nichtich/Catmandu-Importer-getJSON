@@ -60,4 +60,13 @@ my $importer = Catmandu::Importer::getJSON->new(
 is_deeply $importer->first, {n => 1}, 'array response 1/2';
 is_deeply $importer->rest->first, { n => 2}, 'array response 2/2';
 
+{
+    my $warning; local $SIG{__WARN__} = sub { $warning = shift };
+    is_deeply(Catmandu::Importer::getJSON->new(
+        file => \"x\n\nhttp://example.org/",
+        dry => 1,
+    )->to_array, [{ url => "http://example.org/" }]);
+    is $warning, "failed to construct URL: x\n", "warning";
+}
+
 done_testing;
