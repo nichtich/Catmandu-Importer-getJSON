@@ -1,6 +1,6 @@
 package Catmandu::Importer::getJSON;
 
-our $VERSION = '0.43';
+our $VERSION = '0.44';
 our $CACHE;
 
 use Catmandu::Sane;
@@ -107,7 +107,7 @@ sub generator {
     if ($self->from) {
         return sub {
             state $data = do {
-                my $r = $self->_query_url($self->from);
+                my $r = $self->request($self->from);
                 (ref $r // '') eq 'ARRAY' ? $r : [$r];
             };
             return shift @$data;
@@ -128,10 +128,13 @@ sub generator {
             chomp $line;
             $line =~ s/^\s+|\s+$//g;
             next if $line eq ''; # ignore empty lines
-            $url = $self->_construct_url($line);
+
+            my $request = eval { $self->request_hook($line) };
+            $url = $self->construct_url($request);
+            warn "failed to construct URL: $line\n" if !$url and $self->warn;
         }
 
-        $data = $self->_query_url($url);
+        $data = $self->request($url);
 
         return (ref $data // '') eq 'ARRAY' ? shift @$data : $data;
     }
@@ -160,32 +163,25 @@ sub request_hook {
     }
 }
 
-sub _construct_url {
-    my ($self, $line) = @_;
-
-    my $request = eval { $self->request_hook($line) };
-    my $url;
-
+sub construct_url {
+    my ($self, $request) = @_;
+        
     # Template or query variables
     if (ref $request and not blessed($request)) {
-        $url = $self->url;
+        my $url = $self->url or return;
         if ($url->isa('URI::Template')) {
             $url = $url->process($request);
         } else {
             $url = $url->clone;
             $url->query_form($request);
-        }         
+        }  
+        return $url;       
     } else {
-        $url = $request;
+        return $request;
     }
-  
-    warn "failed to construct URL: $line\n" if !$url and $self->warn;
+} 
 
-    return $url;
-}
-
-
-sub _query_url {
+sub request {
     my ($self, $url) = @_;
 
     $self->log->debug($url);
@@ -215,7 +211,7 @@ sub _query_url {
         my $data    = $self->json->decode($content);
         $json       = $self->response_hook($data);
      } else {
-        warn "request failed: $url\n";
+        warn "request failed: $url\n" unless !$self->warn;
         if ($response->status =~ /^4/) {
             $json = '';
         } else {
@@ -365,6 +361,16 @@ C<http://example.org/> is cached as C<4389382917e51695b759543fdfd5f690.json>.
 Returns the UNIX timestamp right before the last request. This can be used for
 instance to add timestamps or the measure how fast requests were responded.
 
+=head2 construct_url
+
+Returns an URL given a hash reference with variables, a plain URL or an URL
+path.
+
+=head2 request($url)
+
+Perform a HTTP GET request of a given URL including logging, caching, request
+hook etc. Returns a hash/array reference or C<undef>.
+
 =head1 EXTENDING
 
 This importer provides two methods to filter requests and responses,
@@ -373,7 +379,8 @@ respectively. See L<Catmandu::Importer::Wikidata> for an example.
 =head2 request_hook
 
 Gets a whitespace-trimmed input line and is expected to return an unblessed
-object, an URL, or undef. Errors are catched and treated equal to undef. 
+hash reference, an URL, or undef. Errors are catched and treated equal to
+undef. 
 
 =head2 response_hook
 
@@ -385,10 +392,8 @@ URLs are emitted before each request on DEBUG log level.
 
 =head1 LIMITATIONS
 
-Error handling is very limited.
-
 Future versions of this module may also support asynchronous HTTP fetching
-modules such as L<HTTP::Async>, for retrieving multiple URLs at the same time..
+modules such as L<HTTP::Async>, for retrieving multiple URLs at the same time.
 
 =head1 SEE ALSO
 
