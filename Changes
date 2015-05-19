@@ -1,6 +1,7 @@
 Changelog for Catmandu-Importer-getJSON
 
 {{$NEXT}}
+ - more powerful get_json fix function
  - new public methods request and construct_url 
  - proceed on URL errors when reading URLs from stream
  - made in-memory cache global

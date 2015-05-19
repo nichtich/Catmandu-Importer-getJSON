@@ -1,6 +1,6 @@
 package Catmandu::Importer::getJSON;
 
-our $VERSION = '0.44';
+our $VERSION = '0.50';
 our $CACHE;
 
 use Catmandu::Sane;
@@ -12,7 +12,13 @@ use URI::Template;
 
 with 'Catmandu::Importer';
 
-has url     => ( is => 'rw', trigger => 1 );
+has url     => ( 
+    is  => 'rw', 
+    trigger => sub {
+        $_[0]->{url} = _url_template_or_url($_[1])
+    }
+);
+
 has from    => ( is => 'ro');
 has timeout => ( is => 'ro', default => sub { 10 } );
 has agent   => ( is => 'ro' );
@@ -38,11 +44,11 @@ has json => ( is => 'ro', default => sub { JSON->new->utf8(1) } );
 has time => ( is => 'rw' );
 has warn => ( is => 'ro', default => sub { 1 } );
 
-sub _trigger_url {
-    my ($self, $url) = @_;
+sub _url_template_or_url {
+    my ($url) = @_;
 
     if (!blessed $url) {
-        $url = URI::Template->new($url) unless blessed $url;
+        $url = URI::Template->new($url);
     }
 
     if ($url->isa('URI::Template')) {
@@ -50,9 +56,9 @@ sub _trigger_url {
             $url = URI->new("$url");
         }
     }
-
-    $self->{url} = $url;
+    return $url;
 }
+
 
 {
     package Importer::getJSON::MemoryCache;
@@ -142,33 +148,17 @@ sub generator {
 
 sub request_hook {
     my ($self, $line) = @_;
-
-    if ($line =~ /^\s*{/) {
-        return $self->json->decode($line); 
-    } else {
-        my $url;
-
-        # plain URL
-        if ( $line =~ /^https?:\// ) {
-            $url = URI->new($line);
-        # URL path (and optional query)
-        } elsif ( $line =~ /^\// ) {
-            $url = "".$self->url;
-            $url =~ s{/$}{}; 
-            $line =~ s{\s+$}{};
-            $url = URI->new($url . $line);
-        }
- 
-        return $url;
-    }
+    return $line =~ /^\s*{/ ? $self->json->decode($line) : $line;
 }
 
 sub construct_url {
-    my ($self, $request) = @_;
+    my $self    = shift;
+    my $url     = @_ > 1 ? _url_template_or_url(shift) : $self->url;
+    my $request = shift;
         
     # Template or query variables
-    if (ref $request and not blessed($request)) {
-        my $url = $self->url or return;
+    if (ref $request and not blessed $request) {
+        return unless blessed $url;
         if ($url->isa('URI::Template')) {
             $url = $url->process($request);
         } else {
@@ -176,9 +166,18 @@ sub construct_url {
             $url->query_form($request);
         }  
         return $url;       
-    } else {
+    } elsif (blessed $request and $request->isa('URI::URL')) {
         return $request;
+    } elsif ( $request =~ /^https?:\/\// ) { # plain URL
+        return URI->new($request);
+    } elsif ( $request  =~ /^\// ) { # URL path (and optional query)
+        $url = "$url";
+        $url =~ s{/$}{}; 
+        $request =~ s{\s+$}{};
+        return URI->new($url . $request);
     }
+
+    return;
 } 
 
 sub request {
@@ -361,10 +360,13 @@ C<http://example.org/> is cached as C<4389382917e51695b759543fdfd5f690.json>.
 Returns the UNIX timestamp right before the last request. This can be used for
 instance to add timestamps or the measure how fast requests were responded.
 
-=head2 construct_url
+=head2 construct_url( [ $base_url, ] $vars_url_or_path )
 
 Returns an URL given a hash reference with variables, a plain URL or an URL
-path.
+path. The optional first argument can be used to override option C<url>.
+
+    $importer->construct_url( %query_vars ) 
+    $importer->construct_url( $importer->url, %query_vars ) # equivalent 
 
 =head2 request($url)
 
