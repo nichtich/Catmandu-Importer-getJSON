@@ -104,7 +104,7 @@ item.
 
     The value of this option can be any objects that implements method `get` and
     `set` (e.g. `CHI`), an existing directory for file caching, a true value to
-    enable in-memory-caching, or a false value to disable caching (default).
+    enable global in-memory-caching, or a false value to disable caching (default).
 
     File caching uses file names based on MD5 of an URL so for instance
     `http://example.org/` is cached as `4389382917e51695b759543fdfd5f690.json`.
@@ -116,6 +116,19 @@ item.
 Returns the UNIX timestamp right before the last request. This can be used for
 instance to add timestamps or the measure how fast requests were responded.
 
+## construct\_url( \[ $base\_url, \] $vars\_url\_or\_path )
+
+Returns an URL given a hash reference with variables, a plain URL or an URL
+path. The optional first argument can be used to override option `url`.
+
+    $importer->construct_url( %query_vars ) 
+    $importer->construct_url( $importer->url, %query_vars ) # equivalent 
+
+## request($url)
+
+Perform a HTTP GET request of a given URL including logging, caching, request
+hook etc. Returns a hash/array reference or `undef`.
+
 # EXTENDING
 
 This importer provides two methods to filter requests and responses,
@@ -124,7 +137,8 @@ respectively. See [Catmandu::Importer::Wikidata](https://metacpan.org/pod/Catman
 ## request\_hook
 
 Gets a whitespace-trimmed input line and is expected to return an unblessed
-object or an URL.
+hash reference, an URL, or undef. Errors are catched and treated equal to
+undef. 
 
 ## response\_hook
 
@@ -136,10 +150,8 @@ URLs are emitted before each request on DEBUG log level.
 
 # LIMITATIONS
 
-Error handling is very limited.
-
 Future versions of this module may also support asynchronous HTTP fetching
-modules such as [HTTP::Async](https://metacpan.org/pod/HTTP::Async), for retrieving multiple URLs at the same time..
+modules such as [HTTP::Async](https://metacpan.org/pod/HTTP::Async), for retrieving multiple URLs at the same time.
 
 # SEE ALSO
 
