@@ -1,6 +1,7 @@
 Changelog for Catmandu-Importer-getJSON
 
 {{$NEXT}}
+ - Disable default warning enabled (issue #15) 
 
 0.50  2015-05-19 12:48:46 CEST
  - more powerful get_json fix function
