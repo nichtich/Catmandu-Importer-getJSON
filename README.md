@@ -20,7 +20,7 @@ The following three examples are equivalent:
         url  => "http://example.org",
         file => \"/alice.json\n/bob.json"
     )->each(sub { my ($record) = @_; ... );
-    
+
     Catmandu::Importer::getJSON->new(
         url  => "http://example.org/{name}.json",
         file => \"{\"name\":\"alice\"}\n{\"name\":\"bob\"}"
@@ -51,7 +51,7 @@ following input formats are accepted:
 
     A JSON object with variables to be used with an URL template or as HTTP query
     parameters. For instance the input line `{"name":"Karl Marx"}` with URL
-    `http://api.lobid.org/person` or the input line 
+    `http://api.lobid.org/person` or the input line
     `{"entity":"person","name":"Karl Marx"}` with URL template
     `http://api.lobid.org/{entity}{?id}{?name}{?q}` are both expanded to
     [http://api.lobid.org/person?name=Karl+Marx](http://api.lobid.org/person?name=Karl+Marx).
@@ -64,7 +64,7 @@ item.
 
 - url
 
-    An [URI](https://metacpan.org/pod/URI) or an URI templates ([URI::Template](https://metacpan.org/pod/URI::Template)) as defined by 
+    An [URI](https://metacpan.org/pod/URI) or an URI templates ([URI::Template](https://metacpan.org/pod/URI::Template)) as defined by
     [RFC 6570](http://tools.ietf.org/html/rfc6570) to load JSON from. If no **url**
     is configured, plain URLs must be provided as input or option `from` must be
     used instead.
@@ -83,7 +83,7 @@ item.
 
 - dry
 
-    Don't do any HTTP requests but return URLs that data would be queried from. 
+    Don't do any HTTP requests but return URLs that data would be queried from.
 
 - file / fh
 
@@ -109,6 +109,10 @@ item.
     File caching uses file names based on MD5 of an URL so for instance
     `http://example.org/` is cached as `4389382917e51695b759543fdfd5f690.json`.
 
+- warn
+
+    Show error messages on the standard error.
+
 # METHODS
 
 ## time
@@ -121,8 +125,8 @@ instance to add timestamps or the measure how fast requests were responded.
 Returns an URL given a hash reference with variables, a plain URL or an URL
 path. The optional first argument can be used to override option `url`.
 
-    $importer->construct_url( %query_vars ) 
-    $importer->construct_url( $importer->url, %query_vars ) # equivalent 
+    $importer->construct_url( %query_vars )
+    $importer->construct_url( $importer->url, %query_vars ) # equivalent
 
 ## request($url)
 
@@ -138,7 +142,7 @@ respectively. See [Catmandu::Importer::Wikidata](https://metacpan.org/pod/Catman
 
 Gets a whitespace-trimmed input line and is expected to return an unblessed
 hash reference, an URL, or undef. Errors are catched and treated equal to
-undef. 
+undef.
 
 ## response\_hook
 

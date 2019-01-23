@@ -1,3 +1,5 @@
 .build
 build
 Catmandu-Importer-getJSON-*
+local
+cpanfile.snapshot
