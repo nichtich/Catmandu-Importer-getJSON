@@ -12,8 +12,8 @@ use URI::Template;
 
 with 'Catmandu::Importer';
 
-has url     => ( 
-    is  => 'rw', 
+has url     => (
+    is  => 'rw',
     trigger => sub {
         $_[0]->{url} = _url_template_or_url($_[1])
     }
@@ -24,25 +24,25 @@ has timeout => ( is => 'ro', default => sub { 10 } );
 has agent   => ( is => 'ro' );
 has proxy   => ( is => 'ro' );
 has dry     => ( is => 'ro' );
-has headers => ( 
-    is => 'ro', 
-    default => sub { [ 'Accept' => 'application/json' ] } 
+has headers => (
+    is => 'ro',
+    default => sub { [ 'Accept' => 'application/json' ] }
 );
 has wait    => ( is => 'ro' );
 has cache   => ( is => 'ro', trigger => 1 );
 has client  => (
     is => 'ro',
     lazy => 1,
-    builder => sub { 
-        Furl->new( 
+    builder => sub {
+        Furl->new(
             map { $_ => $_[0]->{$_} } grep { defined $_[0]->{$_} }
             qw(timeout agent proxy),
-        ) 
+        )
     }
 );
 has json => ( is => 'ro', default => sub { JSON->new->utf8(1) } );
 has time => ( is => 'rw' );
-has warn => ( is => 'ro', default => sub { 1 } );
+has warn => ( is => 'ro', default => sub { 0 } );
 
 sub _url_template_or_url {
     my ($url) = @_;
@@ -79,14 +79,14 @@ $CACHE = Importer::getJSON::MemoryCache->new;
     sub new {
         my ($class, $dir) = @_;
         $dir =~ s{/$}{};
-        bless { dir => $dir }, $class 
+        bless { dir => $dir }, $class
     }
     sub file {
         my ($self, $url) = @_;
         $self->{dir}.'/'.md5_hex($url).'.json';
     }
     sub get { eval { read_json($_[0]->file($_[1])) } }
-    sub set { 
+    sub set {
         my ($self, $url, $data) = @_;
         open my $fh, ">", $self->file($url);
         print $fh (ref $data ? $JSON->encode($data) : '');
@@ -95,9 +95,9 @@ $CACHE = Importer::getJSON::MemoryCache->new;
 
 sub _trigger_cache {
     my ($self, $cache) = @_;
- 
+
     if (blessed $cache and $cache->can('get') and $cache->can('set')) {
-        # use cache object 
+        # use cache object
     } elsif ($cache and -d $cache) {
         $cache = Importer::getJSON::FileCache->new($cache);
     } elsif ($cache) {
@@ -109,7 +109,7 @@ sub _trigger_cache {
 
 sub generator {
     my ($self) = @_;
-    
+
     if ($self->from) {
         return sub {
             state $data = do {
@@ -137,7 +137,10 @@ sub generator {
 
             my $request = eval { $self->request_hook($line) };
             $url = $self->construct_url($request);
-            warn "failed to construct URL: $line\n" if !$url and $self->warn;
+            if (! $url) {
+                warn "failed to construct URL: $line\n" if $self->warn;
+                $self->log->warn("failed to construct URL: $line");
+            }
         }
 
         $data = $self->request($url);
@@ -155,7 +158,7 @@ sub construct_url {
     my $self    = shift;
     my $url     = @_ > 1 ? _url_template_or_url(shift) : $self->url;
     my $request = shift;
-        
+
     # Template or query variables
     if (ref $request and not blessed $request) {
         return unless blessed $url;
@@ -164,21 +167,21 @@ sub construct_url {
         } else {
             $url = $url->clone;
             $url->query_form($request);
-        }  
-        return $url;       
+        }
+        return $url;
     } elsif (blessed $request and $request->isa('URI::URL')) {
         return $request;
     } elsif ( $request =~ /^https?:\/\// ) { # plain URL
         return URI->new($request);
     } elsif ( $request  =~ /^\// ) { # URL path (and optional query)
         $url = "$url";
-        $url =~ s{/$}{}; 
+        $url =~ s{/$}{};
         $request =~ s{\s+$}{};
         return URI->new($url . $request);
     }
 
     return;
-} 
+}
 
 sub request {
     my ($self, $url) = @_;
@@ -195,7 +198,7 @@ sub request {
         $json = $self->cache->get($url);
         if (defined $json) {
             return ref $json ? $json : undef;
-        }   
+        }
     }
 
     if ( $self->wait and $self->time ) {
@@ -210,7 +213,8 @@ sub request {
         my $data    = $self->json->decode($content);
         $json       = $self->response_hook($data);
      } else {
-        warn "request failed: $url\n" unless !$self->warn;
+        warn "request failed: $url\n" if $self->warn;
+        $self->log->warn("request failed: $url");
         if ($response->status =~ /^4/) {
             $json = '';
         } else {
@@ -256,7 +260,7 @@ The following three examples are equivalent:
         url  => "http://example.org",
         file => \"/alice.json\n/bob.json"
     )->each(sub { my ($record) = @_; ... );
-    
+
     Catmandu::Importer::getJSON->new(
         url  => "http://example.org/{name}.json",
         file => \"{\"name\":\"alice\"}\n{\"name\":\"bob\"}"
@@ -289,7 +293,7 @@ A line that starts with "C</>" is appended to the configured B<url> parameter.
 
 A JSON object with variables to be used with an URL template or as HTTP query
 parameters. For instance the input line C<< {"name":"Karl Marx"} >> with URL
-C<http://api.lobid.org/person> or the input line 
+C<http://api.lobid.org/person> or the input line
 C<< {"entity":"person","name":"Karl Marx"} >> with URL template
 C<http://api.lobid.org/{entity}{?id}{?name}{?q}> are both expanded to
 L<http://api.lobid.org/person?name=Karl+Marx>.
@@ -306,7 +310,7 @@ item.
 
 =item url
 
-An L<URI> or an URI templates (L<URI::Template>) as defined by 
+An L<URI> or an URI templates (L<URI::Template>) as defined by
 L<RFC 6570|http://tools.ietf.org/html/rfc6570> to load JSON from. If no B<url>
 is configured, plain URLs must be provided as input or option C<from> must be
 used instead.
@@ -325,7 +329,7 @@ Instance of a L<Furl> HTTP client to perform requests with.
 
 =item dry
 
-Don't do any HTTP requests but return URLs that data would be queried from. 
+Don't do any HTTP requests but return URLs that data would be queried from.
 
 =item file / fh
 
@@ -351,6 +355,10 @@ enable global in-memory-caching, or a false value to disable caching (default).
 File caching uses file names based on MD5 of an URL so for instance
 C<http://example.org/> is cached as C<4389382917e51695b759543fdfd5f690.json>.
 
+=item warn
+
+Show error messages on the standard error.
+
 =back
 
 =head1 METHODS
@@ -365,8 +373,8 @@ instance to add timestamps or the measure how fast requests were responded.
 Returns an URL given a hash reference with variables, a plain URL or an URL
 path. The optional first argument can be used to override option C<url>.
 
-    $importer->construct_url( %query_vars ) 
-    $importer->construct_url( $importer->url, %query_vars ) # equivalent 
+    $importer->construct_url( %query_vars )
+    $importer->construct_url( $importer->url, %query_vars ) # equivalent
 
 =head2 request($url)
 
@@ -382,7 +390,7 @@ respectively. See L<Catmandu::Importer::Wikidata> for an example.
 
 Gets a whitespace-trimmed input line and is expected to return an unblessed
 hash reference, an URL, or undef. Errors are catched and treated equal to
-undef. 
+undef.
 
 =head2 response_hook
 
