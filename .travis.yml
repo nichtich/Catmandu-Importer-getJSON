@@ -7,6 +7,9 @@ perl:
     - "5.12"
     # Dist::Milla requires Perl 5.12, so skip testing 5.10
 
+before_install:
+    - sudo apt-get install -y libdist-zilla-perl
+
 install:
     - cpanm -q -n --skip-satisfied Dist::Zilla
     - dzil authordeps --missing | cpanm -n
