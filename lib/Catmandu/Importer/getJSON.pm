@@ -89,7 +89,7 @@ $CACHE = Importer::getJSON::MemoryCache->new;
 
     sub file {
         my ( $self, $url ) = @_;
-        $self->{dir} . '/' . md5_hex($url) . '.json';
+        $self->{dir} . '/' . md5_hex($url->as_string) . '.json';
     }
 
     sub get {
