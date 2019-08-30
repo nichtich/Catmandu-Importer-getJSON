@@ -1,6 +1,6 @@
 package Catmandu::Fix::get_json;
 
-our $VERSION = '0.51';
+our $VERSION = '0.52';
 
 use Catmandu::Sane;
 use Catmandu::Util;
